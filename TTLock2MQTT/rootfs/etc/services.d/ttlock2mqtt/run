@@ -1,0 +1,46 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Start the ttlock2mqtt service
+# s6-overlay docs: https://github.com/just-containers/s6-overlay
+# ==============================================================================
+
+# Declare variables
+declare tt_user
+declare tt_password
+declare tt_id
+declare tt_secret
+declare mqtt
+declare mqtt_port
+declare mqtt_user
+declare mqtt_pass
+declare log_level
+declare State_delay
+declare Battery_delay
+declare Max_threads
+
+# Get the keys from the user config options.
+tt_user=$(bashio::config 'TTLock_username')
+tt_password=$(bashio::config 'TTLock_password')
+tt_id=$(bashio::config 'TTLock_client_Id')
+tt_secret=$(bashio::config 'TTLock_client_secrect')
+
+log_level=$(bashio::config 'Log_level')
+State_delay=$(bashio::config 'State_delay')
+Battery_delay=$(bashio::config 'Battery_delay')
+Max_threads=$(bashio::config 'Max_threads')
+
+# Get the keys from the mqtt service.
+if ! bashio::services.available "mqtt"; then
+   bashio::exit.nok "No internal MQTT Broker found. Please install Mosquitto broker."
+else
+    mqtt=$(bashio::services mqtt "host")
+    mqtt_port=1883
+    mqtt_user=$(bashio::services mqtt "username")
+    mqtt_pass=$(bashio::services mqtt "password")
+fi
+
+# Print
+bashio::log.info "Run application..."
+
+# Run application
+exec python3 /usr/bin/ttlock_adapter.py --tt_user=${tt_user} --tt_pass=${tt_password} --tt_id=${tt_id} --tt_secret=${tt_secret} --mqtt=${mqtt} --mqtt_port=${mqtt_port} --mqtt_user=${mqtt_user} --mqtt_pass=${mqtt_pass} --log_level=${log_level}  --State_delay=${State_delay} --Battery_delay=${Battery_delay} --Max_threads=${Max_threads}
